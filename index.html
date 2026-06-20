@@ -439,6 +439,19 @@ body {
   text-transform: uppercase; letter-spacing: 1px;
   color: var(--coral);
 }
+.version-tag {
+  font-size: 12px;
+  color: var(--muted);
+  letter-spacing: 0.5px;
+}
+.login-version {
+  display: block;
+  text-align: center;
+  margin-top: 14px;
+  font-size: 12px;
+  color: var(--muted);
+  letter-spacing: 0.5px;
+}
 
 /* SUMMARY SCREEN */
 #summary-screen {
@@ -661,9 +674,10 @@ body {
     </div>
     <div class="login-stripe"></div>
     <div class="login-card-body">
-      <p>Select your name to join the circle. Share one thing you know about a teammate to unlock your connection.</p>
+      <p>Select your name to join the circle. Share something you know about a teammate to connect — if you don't know anything about them, just leave it blank.</p>
       <div class="name-grid" id="name-grid"></div>
       <button class="login-btn" id="login-btn" disabled>Select your name to begin</button>
+      <span class="login-version version-tag"></span>
     </div>
   </div>
 </div>
@@ -710,7 +724,7 @@ body {
         <div class="panel-idle-icon">🔗</div>
         <div class="panel-idle-eyebrow">Get Started</div>
         <h3>Select a teammate</h3>
-        <p>Click any name on the circle above. Share one thing you know about them to unlock your connection.</p>
+        <p>Click any name on the circle above. Share something you know about them to connect. If you don't know anything about that person, leave it blank.</p>
       </div>
       <div id="panel-connection" style="display:none"></div>
     </div>
@@ -718,6 +732,7 @@ body {
 
   <footer class="game-footer">
     <span class="copyright">Sandler Training · Powered by Sales Engine LLC · All rights reserved.</span>
+    <span class="version-tag"></span>
     <span class="footer-right">Circle of Trust</span>
   </footer>
 </div>
@@ -756,6 +771,7 @@ body {
 
   <footer class="game-footer">
     <span class="copyright">Sandler Training · Powered by Sales Engine LLC · All rights reserved.</span>
+    <span class="version-tag"></span>
     <span class="footer-right">Circle of Trust</span>
   </footer>
 </div>
@@ -770,6 +786,10 @@ const N = MEMBERS.length;
 const FACTS_NEEDED = 1;
 const TOTAL_PAIRS = N*(N-1)/2;
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz7Zil-wvO4jJ7ZI6FdEhRMphePSCkXfDa1RtbCJ1MuwG3XVpw4yETVflp9fakS-KrQ/exec';
+
+// Bump this on every update so you can confirm the latest version is live.
+const APP_VERSION = 'v1.1 · 2026-06-20';
+document.querySelectorAll('.version-tag').forEach(el => { el.textContent = APP_VERSION; });
 
 let currentUser = null;
 let selectedTarget = null;
@@ -788,7 +808,8 @@ async function loadFromSheet() {
       const facts = json.data[key].facts;
       if (facts && facts.length > 0) {
         newData.connections[key] = true;
-        newData.facts[key] = facts;
+        // Normalize: each fact is { text, by }. Legacy string facts have no author.
+        newData.facts[key] = facts.map(f => typeof f === 'string' ? { text: f, by: null } : f);
       }
     });
     gameData = newData;
@@ -1017,38 +1038,37 @@ function renderPanel() {
   conn.style.display = 'block';
 
   const key = pairKey(currentUser, selectedTarget);
-  const isConnected = gameData.connections[key];
-  const existingFacts = gameData.facts[key] || [];
+  const allFacts = gameData.facts[key] || [];
+  const myFacts = allFacts.filter(f => f && f.by === currentUser).map(f => f.text);
+  const isConnected = myFacts.length > 0;
 
   if (isConnected) {
     conn.innerHTML = `
       <div class="panel-body">
         <div class="panel-header">
           <h3>Your connection with ${selectedTarget}</h3>
-          <button class="panel-back" id="panel-back-btn">✕ Close</button>
         </div>
         <div class="connected-box">
           <div class="connected-check">✓</div>
           <div class="connected-facts">
             <strong>Connected!</strong>
-            ${existingFacts.map(f => `<div class="connected-fact-item">${f}</div>`).join('')}
+            ${myFacts.map(f => `<div class="connected-fact-item">${escapeHtml(f)}</div>`).join('')}
           </div>
         </div>
       </div>`;
   } else {
-    const drafts = gameData.facts[key + '_draft'] || existingFacts;
+    const drafts = gameData.facts[key + '_draft'] || myFacts;
     conn.innerHTML = `
       <div class="panel-body">
         <div class="panel-header">
           <h3>Unlock connection</h3>
-          <button class="panel-back" id="panel-back-btn">✕ Close</button>
         </div>
         <div class="pair-badge">
           <span>${currentUser}</span>
           <span class="arrow">→</span>
           <span>${selectedTarget}</span>
         </div>
-        <p class="panel-prompt">Share at least one fact you know about <strong>${selectedTarget}</strong> — add more if you like.</p>
+        <p class="panel-prompt">Share anything you know about <strong>${selectedTarget}</strong> — add more if you like. If you don't know anything about them, leave it blank.</p>
         <div id="facts-list">
           ${(drafts.filter(d=>d).length > 0 ? drafts : ['']).map((d,i) => `
             <div class="fact-row" data-index="${i}">
@@ -1059,16 +1079,19 @@ function renderPanel() {
         </div>
         <button class="add-fact-btn" id="add-fact-btn">+ Add another fact</button>
         <button class="lock-btn" id="lock-btn">Lock In Connection</button>
-        <p class="hint-text" id="panel-hint">Enter at least one fact to connect.</p>
+        <p class="hint-text" id="panel-hint">Don't know anything about ${selectedTarget}? Just leave it blank and close.</p>
       </div>`;
     bindDynamicInputs();
     document.getElementById('add-fact-btn').addEventListener('click', addFactRow);
     document.getElementById('lock-btn').addEventListener('click', tryLock);
   }
 
-  document.getElementById('panel-back-btn').addEventListener('click', () => {
-    selectedTarget = null; renderPanel(); drawCanvas();
-  });
+  const backBtn = document.getElementById('panel-back-btn');
+  if (backBtn) {
+    backBtn.addEventListener('click', () => {
+      selectedTarget = null; renderPanel(); drawCanvas();
+    });
+  }
 }
 
 function escapeHtml(str) {
@@ -1113,16 +1136,23 @@ function addFactRow() {
 async function tryLock() {
   const facts = getDraftFacts();
   if (facts.length === 0) {
-    const hint = document.getElementById('panel-hint');
-    if (hint) { hint.textContent = 'Enter at least one fact first.'; hint.style.color = '#E34554'; }
+    // Don't know anything about them — leave it blank and move on.
+    delete gameData.facts[pairKey(currentUser, selectedTarget) + '_draft'];
+    selectedTarget = null;
+    renderPanel(); drawCanvas();
+    showToast('Left blank — no problem!');
     return;
   }
   const key = pairKey(currentUser, selectedTarget);
+  // Keep anyone else's facts on this pair; replace only my own. Tag each with its author.
+  const others = (gameData.facts[key] || []).filter(f => f && f.by && f.by !== currentUser);
+  const mine = facts.map(t => ({ text: t, by: currentUser }));
+  const merged = [...others, ...mine];
   gameData.connections[key] = true;
-  gameData.facts[key] = facts;
+  gameData.facts[key] = merged;
   delete gameData.facts[key + '_draft'];
   showToast('Saving...');
-  await saveToSheet(key, facts);
+  await saveToSheet(key, merged);
   showToast(`Connected with ${selectedTarget}! 🎉`);
   renderPanel(); drawCanvas(); updateStats(); checkWin();
 }
@@ -1178,13 +1208,15 @@ document.getElementById('summary-back-btn').addEventListener('click', () => {
 let spotlightIndex = 0;
 
 function getPersonFacts(person) {
+  // Facts ABOUT `person` are the ones OTHER people wrote on a shared pair.
+  // In pair person|other, those are the facts authored by `other`.
   const groups = [];
   MEMBERS.forEach(other => {
     if (other === person) return;
     const key = pairKey(person, other);
-    if (gameData.connections[key] && gameData.facts[key]) {
-      groups.push({ other, facts: gameData.facts[key] });
-    }
+    const arr = gameData.facts[key] || [];
+    const aboutPerson = arr.filter(f => f && f.by === other).map(f => f.text).filter(Boolean);
+    if (aboutPerson.length) groups.push({ other, facts: aboutPerson });
   });
   return groups;
 }
@@ -1200,6 +1232,7 @@ function renderSpotlight(idx) {
     bodyHtml = `<div class="spotlight-no-facts">No facts shared yet</div>`;
   } else {
     groups.forEach(({other, facts}) => {
+      bodyHtml += `<div class="spotlight-source-label">Via ${other}</div>`;
       facts.forEach(f => { if(f) bodyHtml += `<div class="spotlight-fact">${f}</div>`; });
     });
   }
@@ -1255,7 +1288,7 @@ function buildAllGrid() {
       html += `<div class="no-facts">No facts yet</div>`;
     } else {
       groups.forEach(({other, facts}) => {
-        html += `<div class="summary-from-label">via ${other}</div>`;
+        html += `<div class="summary-from-label">Via ${other}</div>`;
         facts.forEach(f => { if(f) html += `<div class="summary-fact-line">${f}</div>`; });
       });
     }
