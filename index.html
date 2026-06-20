@@ -477,8 +477,8 @@ body {
 .summary-body { padding: 1.5rem 1rem; flex: 1; }
 .summary-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
-  gap: 12px; max-width: 780px; margin: 0 auto;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px; max-width: 1140px; margin: 0 auto;
 }
 .summary-card {
   background: var(--white);
@@ -659,6 +659,7 @@ body {
   .header-player { display: none; }
   .name-grid { grid-template-columns: repeat(2, 1fr); }
   .login-card-body { padding: 1.25rem 1.25rem 1.5rem; }
+  .summary-grid { grid-template-columns: 1fr; }
 }
 </style>
 </head>
@@ -674,7 +675,7 @@ body {
     </div>
     <div class="login-stripe"></div>
     <div class="login-card-body">
-      <p>Select your name to join the circle. Share something you know about a teammate to connect — if you don't know anything about them, just leave it blank.</p>
+      <p>Pick your name to join. Share something about a teammate to connect — or leave it blank if you don't know them.</p>
       <div class="name-grid" id="name-grid"></div>
       <button class="login-btn" id="login-btn" disabled>Select your name to begin</button>
       <span class="login-version version-tag"></span>
@@ -762,7 +763,7 @@ body {
 
   <!-- ALL AT ONCE MODE -->
   <div id="reveal-all" style="display:none; flex-direction:column; flex:1; padding:1.5rem 1rem;">
-    <div style="max-width:900px; margin:0 auto 1rem; display:flex; align-items:center; justify-content:space-between;">
+    <div style="max-width:1140px; margin:0 auto 1rem; display:flex; align-items:center; justify-content:space-between;">
       <span style="font-size:14px; color:var(--muted); font-weight:500;">All 13 teammates</span>
       <button class="spot-nav-btn" id="back-to-spotlight-btn">← Back to spotlight</button>
     </div>
@@ -788,7 +789,7 @@ const TOTAL_PAIRS = N*(N-1)/2;
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz7Zil-wvO4jJ7ZI6FdEhRMphePSCkXfDa1RtbCJ1MuwG3XVpw4yETVflp9fakS-KrQ/exec';
 
 // Bump this on every update so you can confirm the latest version is live.
-const APP_VERSION = 'v1.2 · 2026-06-20';
+const APP_VERSION = 'v1.5 · 2026-06-20';
 document.querySelectorAll('.version-tag').forEach(el => { el.textContent = APP_VERSION; });
 
 let currentUser = null;
@@ -1240,7 +1241,6 @@ function renderSpotlight(idx) {
       <div class="spotlight-avatar">${initials}</div>
       <div>
         <div class="spotlight-name">${person}</div>
-        <div class="spotlight-subtitle">${connCount} of ${N-1} connections</div>
       </div>
     </div>
     <div class="spotlight-stripe"></div>
@@ -1280,7 +1280,6 @@ function buildAllGrid() {
           <div class="summary-avatar">${initials}</div>
           <div>
             <div class="summary-person-name">${person}</div>
-            <div class="summary-conn-count">${groups.length} of ${N-1} connections</div>
           </div>
         </div>`;
     if (groups.length === 0) {
