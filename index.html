@@ -788,7 +788,7 @@ const TOTAL_PAIRS = N*(N-1)/2;
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz7Zil-wvO4jJ7ZI6FdEhRMphePSCkXfDa1RtbCJ1MuwG3XVpw4yETVflp9fakS-KrQ/exec';
 
 // Bump this on every update so you can confirm the latest version is live.
-const APP_VERSION = 'v1.1 · 2026-06-20';
+const APP_VERSION = 'v1.2 · 2026-06-20';
 document.querySelectorAll('.version-tag').forEach(el => { el.textContent = APP_VERSION; });
 
 let currentUser = null;
@@ -1232,7 +1232,6 @@ function renderSpotlight(idx) {
     bodyHtml = `<div class="spotlight-no-facts">No facts shared yet</div>`;
   } else {
     groups.forEach(({other, facts}) => {
-      bodyHtml += `<div class="spotlight-source-label">Via ${other}</div>`;
       facts.forEach(f => { if(f) bodyHtml += `<div class="spotlight-fact">${f}</div>`; });
     });
   }
@@ -1288,7 +1287,6 @@ function buildAllGrid() {
       html += `<div class="no-facts">No facts yet</div>`;
     } else {
       groups.forEach(({other, facts}) => {
-        html += `<div class="summary-from-label">Via ${other}</div>`;
         facts.forEach(f => { if(f) html += `<div class="summary-fact-line">${f}</div>`; });
       });
     }

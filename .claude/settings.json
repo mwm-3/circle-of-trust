@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "statusMessage": "Auto-committing & pushing site…",
+            "command": "if git diff --quiet HEAD -- index.html 2>/dev/null; then exit 0; fi; git add index.html && git commit -q -m \"Auto-update site $(date '+%Y-%m-%d %H:%M')\" && git push -q origin HEAD 2>/dev/null && echo '{\"systemMessage\":\"index.html committed and pushed — live site updating in ~1 min\"}' || echo '{\"systemMessage\":\"Auto-commit/push failed — run git status / git push manually\"}'"
+          }
+        ]
+      }
+    ]
+  }
+}
